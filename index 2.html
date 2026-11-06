@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07070a">
+<title>CMC.lol</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#07070a; --panel:#111118; --line:#23232e; --text:#ecebf3; --muted:#8b8a9c; --accent:#8f7bff;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:repeating-linear-gradient(115deg,transparent 0 38px,rgba(143,123,255,.06) 38px 40px);
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* splash */
+#splash{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);cursor:pointer;border:0;width:100%;color:var(--text);font:inherit;
+  background-image:repeating-linear-gradient(115deg,transparent 0 38px,rgba(143,123,255,.12) 38px 40px)}
+#splash span{font-size:1.4rem;font-weight:600;letter-spacing:.01em}
+#splash.gone{display:none}
+
+main{max-width:640px;margin:0 auto;padding:56px 20px 80px}
+.avatar{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;
+  font-size:2.6rem;font-weight:800;background:repeating-linear-gradient(135deg,#1a1a26 0 10px,#2a2640 10px 20px);
+  border:2px solid var(--accent)}
+h1{margin:0;text-align:center;font-size:2.4rem;font-weight:800;letter-spacing:-.02em}
+.sub{text-align:center;color:var(--muted);margin:6px 0 32px}
+
+.gate{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:28px}
+.gate h2{margin:0 0 6px;font-size:1.1rem}
+.gate p{margin:0 0 16px;color:var(--muted);line-height:1.5}
+.btn{display:block;width:100%;padding:12px 14px;margin-top:10px;border-radius:10px;border:1px solid var(--line);
+  background:#171722;color:var(--text);font:inherit;font-weight:600;text-align:center;text-decoration:none;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0b0a14}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.note{font-size:.85rem;color:var(--muted);margin:12px 0 0}
+
+#site[hidden]{display:none}
+.search{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);
+  color:var(--text);font:inherit;margin-bottom:16px}
+.search::placeholder{color:var(--muted)}
+.list{display:grid;gap:10px;padding:0;margin:0;list-style:none}
+.card{display:block;padding:16px 18px;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  border-left:4px solid var(--accent);text-decoration:none}
+.card:hover{border-color:var(--accent)}
+.card b{display:block;font-size:1.05rem}
+.card small{display:block;margin-top:3px;color:var(--muted);line-height:1.4}
+.empty{color:var(--muted);text-align:center;padding:24px 0}
+</style>
+</head>
+<body>
+
+<button id="splash" type="button"><span>Click to enter…</span></button>
+
+<main>
+  <div class="avatar" aria-hidden="true">C</div>
+  <h1>CMC.lol</h1>
+  <p class="sub">Downloads, tools and links</p>
+
+  <section class="gate" id="gate">
+    <h2>Before you continue</h2>
+    <p>Please subscribe to my channel before continuing to the site.</p>
+    <a class="btn" id="subLink" href="https://www.youtube.com/@CMC.MODDER?sub_confirmation=1" target="_blank" rel="noopener">1. Subscribe on YouTube</a>
+    <button class="btn primary" id="verify" type="button" disabled>2. Check verification</button>
+    <p class="note">Complete step 1 before checking.</p>
+  </section>
+
+  <div id="site" hidden>
+    <input class="search" id="q" type="search" placeholder="Search links…" aria-label="Search links">
+    <ul class="list" id="list"></ul>
+    <p class="empty" id="empty" hidden>Nothing matches that search.</p>
+  </div>
+</main>
+
+<script>
+/* ===== EDIT HERE ===== */
+const GATE_ENABLED = true;              // set false to skip the subscribe step
+const LINKS = [
+  { title: "YouTube", desc: "Videos, updates and new releases.", url: "https://www.youtube.com/@CMC.MODDER" },
+  { title: "Discord", desc: "Join the community server.", url: "https://discord.gg/7gEkNv3MC" },
+  { title: "TikTok", desc: "Short clips and updates.", url: "https://www.tiktok.com/@cmc.is.back" }
+];
+/* ===================== */
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+};
+
+function render(filter){
+  const f = (filter || "").trim().toLowerCase();
+  const list = $("list"); list.textContent = "";
+  let n = 0;
+  LINKS.forEach(l => {
+    if (f && !(l.title + " " + l.desc).toLowerCase().includes(f)) return;
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.className = "card"; a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+    const b = document.createElement("b"); b.textContent = l.title;
+    const s = document.createElement("small"); s.textContent = l.desc;
+    a.append(b, s); li.append(a); list.append(li); n++;
+  });
+  $("empty").hidden = n !== 0;
+}
+
+function unlock(){
+  $("gate").hidden = true;
+  render("");
+  $("site").hidden = false;
+}
+
+$("splash").addEventListener("click", () => $("splash").classList.add("gone"));
+$("q").addEventListener("input", e => render(e.target.value));
+let timer = null;
+$("subLink").addEventListener("click", () => {
+  if (timer) return;
+  let left = 10;
+  const v = $("verify");
+  v.disabled = true;
+  v.textContent = "Verifying… " + left + "s";
+  timer = setInterval(() => {
+    left--;
+    if (left > 0) { v.textContent = "Verifying… " + left + "s"; return; }
+    clearInterval(timer);
+    v.textContent = "2. Check verification";
+    v.disabled = false;
+  }, 1000);
+});
+$("verify").addEventListener("click", unlock);
+
+if (!GATE_ENABLED) unlock();
+</script>
+</body>
+</html>
